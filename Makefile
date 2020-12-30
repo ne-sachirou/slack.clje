@@ -7,6 +7,10 @@ format: ## Format files
 	(ag -g '\.clje$$' ; echo deps.edn) | xargs -t clojure -m cljfmt.main fix
 	npx prettier --write README.md
 
+.PHONY: repl
+repl: ## REPL shell
+	rlwrap -c -b "(){}[],^%$#@\"\";:''|\\" rebar3 clojerl repl
+
 .PHONY: test
 test: ## Test
 	(ag -g '\.clje$$' ; echo deps.edn) | xargs -t clojure -m cljfmt.main check
