@@ -1,13 +1,13 @@
 { application, 'slack'
 , [ {vsn, git}
-  , {description, "A Clojerl library"}
+  , {description, "A Slack client for Clojerl."}
   , {modules, []}
   , { applications
     , [ stdlib
       , kernel
       , clojerl
+      , gun
       ]
     }
-  , {mod, {'slack.app', []}}
   ]
 }.

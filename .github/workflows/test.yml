@@ -1,19 +1,21 @@
 ---
+name: test
+
 'on':
   pull_request:
   push:
     branches:
       - main
-      - master
 
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+# env:
+#   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   test:
     strategy:
       matrix:
-        elixir: ['1.10.x', '1.11.x']
+        clojure: ['1.10.1.739']
+        elixir: ['1.11.x']
         erlang: ['22.x', '23.x']
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
@@ -22,18 +24,24 @@ jobs:
         with:
           elixir-version: ${{ matrix.elixir }}
           otp-version: ${{ matrix.erlang }}
+      - uses: DeLaGuardo/setup-clojure@3.1
+        with:
+          cli: ${{ matrix.clojure }}
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
         with:
           path: |
             _build
-            deps
-          key: ${{ runner.os }}-erl${{ matrix.erlang }}-ex${{ matrix.elixir }}-${{ hashFiles('mix.lock') }}
+          key: ${{ runner.os }}-erl${{ matrix.erlang }}-${{ hashFiles('rebar.lock') }}
           restore-keys: |
-            ${{ runner.os }}-erl${{ matrix.erlang }}-ex${{ matrix.elixir }}-
             ${{ runner.os }}-erl${{ matrix.erlang }}-
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.m2
+          key: ${{ runner.os }}-clj-${{ hashFiles('deps.edn') }}
+          restore-keys: |
+            ${{ runner.os }}-clj-
       - name: Lint & test
         run: |
-          mix "do" local.hex --force, local.rebar --force
-          mix "do" deps.get, deps.clean --unused, cotton.lint
-          mix coveralls.github
+          make test
