@@ -1,0 +1,9 @@
+(ns slack)
+
+(defn conn-name [name] (keyword (str "slack.conn." name)))
+(defn gen-event-name [name] (keyword (str "slack.gen_event." name)))
+(defn gen-event-sup-name [name] (keyword (str "slack.gen-event-sup." name)))
+(defn sup-name [name] (keyword (str "slack.sup." name)))
+
+(defn send-msg [name msg]
+  (gen_server/call (conn-name name) #erl[:send-msg msg]))

@@ -1,0 +1,35 @@
+(ns slack.gen-event-sup)
+
+(erlang.core/behaviours gen_server)
+
+(defn child-spec [{:keys [api-token handlers name] :as args}]
+  {:id (slack/gen-event-sup-name name)
+   :start [:slack.gen-event-sup :start-link #erl((clj->erl args))]
+   :restart :permanent
+   :shutdown :brutal_kill
+   :type :worker
+   :modules '(:slack.gen-event-sup)})
+
+(defn start-link [{:keys [api-token handlers name] :as args}]
+  (gen_server/start_link #erl[:local (slack/gen-event-sup-name name)]
+                         :slack.gen-event-sup
+                         args
+                         #erl()))
+
+(defn init [{:keys [handlers name] :as args}]
+  (doseq [handler handlers]
+    (let* [#erl[handler-module handler-args] handler
+           :ok (gen_event/add_sup_handler (slack/gen-event-name name)
+                                          handler-module
+                                          (conj args handler-args))]))
+  #erl[:ok args])
+
+(defn handle_call [_ _ state] #erl[:norply state])
+
+(defn handle_cast [_ state] #erl[:norply state])
+
+(def handle_info
+  (fn* ([#erl[:gen_event_EXIT _ reason] state]
+        #erl[:stop reason state])
+       ([_ state]
+        #erl[:noreply state])))

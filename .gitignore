@@ -1,0 +1,3 @@
+.cpcache
+_build
+rebar3.crashdump
