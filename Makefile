@@ -8,7 +8,7 @@ format: ## Format files
 	npx prettier --write README.md
 
 .PHONY: repl
-repl: ## REPL shell
+repl: ## Start a REPL shell
 	rlwrap -c -b "(){}[],^%$#@\"\";:''|\\" rebar3 clojerl repl
 
 .PHONY: test
@@ -16,3 +16,7 @@ test: ## Test
 	(ag -g '\.clje$$' ; echo deps.edn) | xargs -t clojure -m cljfmt.main check
 	rebar3 clojerl compile
 	rebar3 clojerl test
+
+.PHONY: upgrade
+upgrade: ## Upgrade deps
+	rebar3 upgrade
