@@ -33,11 +33,11 @@ Create `gen_event` modules to handle Slack incoming messages.
 (defn handle_call [_ state] #erl[:ok :ok state])
 
 (def handle_event
-  (fn * ([#erl[:receive-msg #as(msg #erl{})] #as(state #erl{:name name :arg1 arg1})]
-          ; Handle msg here.
-          #erl[:ok state])
-        ([_ state]
-          #erl[:ok state])))
+  (fn* ([#erl[:receive-msg #as(msg #erl{})] #as(state #erl{:name name :arg1 arg1})]
+         ; Handle msg here.
+         #erl[:ok state])
+       ([_ state]
+         #erl[:ok state])))
 ```
 
 The `msg` is a decoded JSON received from Slack RTM API.
