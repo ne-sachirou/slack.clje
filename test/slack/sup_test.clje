@@ -1,0 +1,43 @@
+(ns slack.sup-test
+  (:require [clojure.test :refer :all]
+            [meck]
+            [slack.sup :refer :all]))
+
+(def args
+  {:api-token "example-api-token"
+   :handlers '([:example-handler {:arg1 "h1"}])
+   :name "example"})
+
+(deftest child-spec-test
+  (testing "Generate a child-spec."
+    (is (= {:id :slack.sup.example
+            :start [:slack.sup :start-link #erl((clj->erl args))]
+            :restart :permanent
+            :shutdown :brutal_kill
+            :type :supervisor
+            :modules '(:slack.sup)}
+           (slack.sup/child-spec args)))))
+
+(deftest start-link-test
+  (testing "Start a supervisor."
+    (try
+      (meck/new :supervisor #erl(:unstick))
+      (let [ref (erlang/make_ref)]
+        (meck/expect :supervisor
+                     :start_link
+                     (fn* ([#erl[:local :slack.sup.example] :slack.sup args] #erl[:ok ref])))
+        (is (= #erl[:ok ref] (slack.sup/start-link (clj->erl args)))))
+      (is (meck/validate :supervisor))
+      (finally (meck/unload :supervisor)))))
+
+(deftest init-test
+  (testing "Return sup-flags & child-specs."
+    (is (= #erl[:ok
+                #erl[slack.sup/sup-flags
+                     #erl((clj->erl (slack.conn/child-spec args))
+                          #erl{:id :slack.gen_event.example
+                               :start #erl[:gen_event
+                                           :start_link
+                                           #erl(#erl[:local :slack.gen_event.example])]}
+                          (clj->erl (slack.gen-event-sup/child-spec args)))]]
+           (slack.sup/init (clj->erl args))))))

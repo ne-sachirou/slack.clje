@@ -1,6 +1,8 @@
 (ns slack.conn
-  (:require gun
-            jsone))
+  (:require [gun]
+            [jsone]))
+
+(erlang.core/behaviours gen_server)
 
 (defn child-spec [{:keys [api-token handlers name] :as args}]
   {:id (slack/conn-name name)
@@ -17,51 +19,9 @@
                          #erl()))
 
 (defn init [{:keys [api-token] :as args}]
-  (let* [#erl[:ok auth-conn] (gun/open #erl"slack.com" 443)]
-        (gun/get auth-conn
-                 (binary/bin_to_list (str "/api/rtm.connect?"
-                                          (uri_string/compose_query #erl(#erl["token" api-token])))))
-        (receive*
-         #erl[:gun_response
-              auth-conn
-              stream
-              :nofin
-              200
-              _] (let* [#erl[:ok auth-resp-str] (loop [resp []]
-                                                  (receive*
-                                                   #erl[:gun_data
-                                                        auth-conn
-                                                        stream
-                                                        :fin
-                                                        data] #erl[:ok (clojure.string/join (conj resp data))]
-                                                   #erl[:gun_data
-                                                        auth-conn
-                                                        stream
-                                                        :nofin
-                                                        data] (recur (conj resp data))
-                                                   (after 5000 #erl[:error "Timeout"])))
-                        auth-resp (jsone/decode auth-resp-str)
-                        rtm-url (uri_string/parse (get auth-resp "url"))]
-                       (gun/close auth-conn)
-                       (let* [#erl[:ok conn] (gun/open (binary/bin_to_list (:host rtm-url)) 443)]
-                             (gun/ws_upgrade conn (binary/bin_to_list (:path rtm-url)))
-                             (receive*
-                              #erl[:gun_upgrade
-                                   conn
-                                   _
-                                   #erl("websocket")
-                                   headers] (do (erlang/monitor :process conn)
-                                                #erl[:ok (assoc args :conn conn :stream stream)])
-                              #erl[:gun_response
-                                   _
-                                   _
-                                   _
-                                   status
-                                   headers] #erl[:error #erl{:status status :headers headers}]
-                              #erl[:gun_error _ _ reason] #erl[:error reason]
-                              (after 5000 #erl[:error "Timeout"]))))
-         #erl[:gun_response _ _ _ status headers] #erl[:error #erl{:status status :headers headers}]
-         (after 5000 #erl[:error "Timeout"]))))
+  (let* [#erl[:ok rtm-url] (slack.gun-util/get-rtm-url api-token)
+         #erl[:ok conn] (slack.gun-util/open-rtm rtm-url)]
+        #erl[:ok (assoc args :conn conn)]))
 
 (def handle_call
   (fn* ([#erl[:send-msg msg] _ #as(state #erl{:conn conn})]
@@ -69,13 +29,13 @@
                #erl[:ok msg-str] (do (gun/ws_send conn #erl[:text msg-str])
                                      #erl[:reply :ok state])
                #erl[:error reason] #erl[:reply #erl[:error reason] state]))
-       ([_ state]
+       ([_ _ state]
         #erl[:noreply state])))
 
-(defn handle_cast [_ state] #erl[:norply state])
+(defn handle_cast [_ state] #erl[:noreply state])
 
 (def handle_info
-  (fn* ([#erl[:DOWN _ :process _ reason], state]
+  (fn* ([#erl[:DOWN _ :process _ reason] state]
         #erl[:stop reason state])
        ([#erl[:gun_ws _ _ #erl[:text msg]] #as(state #erl{:name name})]
         (gen_event/notify (slack/gen-event-name name)
@@ -84,6 +44,6 @@
        ([msg, state]
         #erl[:noreply state])))
 
-(defn terminate [reason {conn :conn}]
+(defn terminate [_reason {conn :conn}]
   (gun/close conn)
   :ok)

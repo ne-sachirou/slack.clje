@@ -1,0 +1,46 @@
+(ns slack.gun-util
+  (:require [gun]
+            [jsone]))
+
+(defn get-json [conn path]
+  (gun/get conn path)
+  (receive*
+   #erl[:gun_response
+        conn
+        stream
+        :nofin
+        200
+        _] (loop [resp []]
+             (receive*
+              #erl[:gun_data conn stream :fin data] #erl[:ok (->> data
+                                                                  (conj resp)
+                                                                  clojure.string/join
+                                                                  jsone/decode)]
+              #erl[:gun_data conn stream :nofin data] (recur (conj resp data))
+              (after 5000 #erl[:error "Timeout"])))
+   #erl[:gun_response _ _ _ status headers] #erl[:error #erl{:status status :headers headers}]
+   (after 5000 #erl[:error "Timeout"])))
+
+; NOTE: meck can't mock the testing target module.
+(defn stubbed-get-rtm-url [api-token get-json]
+  (let* [#erl[:ok conn] (gun/open #erl"slack.com" 443)
+         #erl[:ok resp] (get-json conn (->> #erl(#erl["token" api-token])
+                                            uri_string/compose_query
+                                            (str "/api/rtm.connect?")
+                                            binary/bin_to_list))]
+        (gun/close conn)
+        #erl[:ok (uri_string/parse (get resp "url"))]))
+(defn get-rtm-url [api-token]
+  (stubbed-get-rtm-url api-token slack.gun-util/get-json.2))
+
+(defn open-rtm [rtm-url]
+  (let* [#erl[:ok conn] (gun/open (binary/bin_to_list (:host rtm-url)) 443)]
+        (gun/ws_upgrade conn (binary/bin_to_list (:path rtm-url)))
+        (receive*
+         #erl[:gun_upgrade conn _ #erl("websocket") headers] (do (erlang/monitor :process conn)
+                                                                 #erl[:ok conn])
+         #erl[:gun_response _ _ _ status headers] (do (gun/close conn)
+                                                      #erl[:error #erl{:status status :headers headers}])
+         #erl[:gun_error _ _ reason] (do (gun/close conn)
+                                         #erl[:error reason])
+         (after 5000 #erl[:error "Timeout"]))))

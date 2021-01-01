@@ -14,7 +14,6 @@ repl: ## Start a REPL shell
 .PHONY: test
 test: ## Test
 	(ag -g '\.clje$$' ; echo deps.edn) | xargs -t clojure -m cljfmt.main check
-	rebar3 clojerl compile
 	rebar3 clojerl test
 
 .PHONY: upgrade

@@ -24,17 +24,16 @@ GPL-3.0-or-later
 Create `gen_event` modules to handle Slack incoming messages.
 
 ```clojure
-(ns example-bot.handler1
-  (:require slack))
+(ns example-bot.handler1)
 
 (erlang.core/behaviours gen_event)
 
-(defn init [{:keys [name] :as args}] #erl[:ok args])
+(defn init [{:keys [name arg1] :as args}] #erl[:ok args])
 
 (defn handle_call [_ state] #erl[:ok :ok state])
 
 (def handle_event
-  (fn * ([#erl[:receive-msg #as(msg #erl{})] #as(state #erl{:name name})]
+  (fn * ([#erl[:receive-msg #as(msg #erl{})] #as(state #erl{:name name :arg1 arg1})]
           ; Handle msg here.
           #erl[:ok state])
         ([_ state]
@@ -55,9 +54,12 @@ Then start a `slack.sup` to give `api-token`, `handlers` & unique `name`.
                     :intensity 1
                     :period    5})
 
-(def child-specs #erl((clj->erl (slack.sup/child-spec {:api-token "Slack API Token"
-                                                       :handlers '([:example-bot.handler1 {}])
-                                                       :name "example-bot"}))))
+(def child-specs #erl((-> {:api-token "Slack API Token"
+                           :handlers '([:example-bot.handler1 {:arg1 "Some value"}]
+                                       [:example-bot.handler2 {}])
+                           :name "example-bot"}
+                          slack.sup/child-spec
+                          clj->erl)))
 
 (defn start-link []
   (supervisor/start_link #erl[:local :example-bot.sup]
@@ -71,11 +73,11 @@ Then start a `slack.sup` to give `api-token`, `handlers` & unique `name`.
 To send a message to Slack, call `slack/send-msg.2`.
 
 ```clojure
-(slack/send-msg name
-                #erl{:id id
-                     :type "message"
-                     :channel channel
-                     :text text})
+(let* [:ok (slack/send-msg name
+                           #erl{:id id
+                                :type "message"
+                                :channel channel
+                                :text text})])
 ```
 
 [clojerl]: https://github.com/clojerl/clojerl

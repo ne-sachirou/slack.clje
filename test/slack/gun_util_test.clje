@@ -1,0 +1,164 @@
+(ns slack.gun-util-test
+  (:require [clojure.test :refer :all]
+            [meck]
+            [slack.gun-util :refer :all]))
+
+(deftest get-json-test
+  (testing "Request a GET & decode the JSON response."
+    (try
+      (meck/new :gun #erl())
+      (let [opener (erlang/self)
+            conn (erlang/self)]
+        (meck/expect :gun
+                     :get
+                     (fn* ([conn "/example"]
+                           (let [stream (erlang/make_ref)]
+                             (erlang/spawn (fn []
+                                             (erlang/send opener #erl[:gun_response
+                                                                      conn
+                                                                      stream
+                                                                      :nofin
+                                                                      200
+                                                                      #erl{}])
+                                             (erlang/send opener #erl[:gun_data
+                                                                      conn
+                                                                      stream
+                                                                      :fin
+                                                                      "{\"key\":\"value\"}"])))
+                             stream))))
+        (is (= #erl[:ok #erl{"key" "value"}] (slack.gun-util/get-json conn "/example"))))
+      (is (meck/validate :gun))
+      (finally (meck/unload :gun))))
+  (testing "Merge splitted responses."
+    (try
+      (meck/new :gun #erl())
+      (let [opener (erlang/self)
+            conn (erlang/self)]
+        (meck/expect :gun
+                     :get
+                     (fn* ([conn "/example"]
+                           (let [stream (erlang/make_ref)]
+                             (erlang/spawn (fn []
+                                             (erlang/send opener #erl[:gun_response
+                                                                      conn
+                                                                      stream
+                                                                      :nofin
+                                                                      200
+                                                                      #erl{}])
+                                             (erlang/send opener #erl[:gun_data
+                                                                      conn
+                                                                      stream
+                                                                      :nofin
+                                                                      "{\"key\":"])
+                                             (erlang/send opener #erl[:gun_data
+                                                                      conn
+                                                                      stream
+                                                                      :fin
+                                                                      "\"value\"}"])))
+                             stream))))
+        (is (= #erl[:ok #erl{"key" "value"}] (slack.gun-util/get-json conn "/example"))))
+      (is (meck/validate :gun))
+      (finally (meck/unload :gun))))
+  (testing "Return an error when the response status isn't OK."
+    (try
+      (meck/new :gun #erl())
+      (let [opener (erlang/self)
+            conn (erlang/self)]
+        (meck/expect :gun
+                     :get
+                     (fn* ([conn "/example"]
+                           (let [stream (erlang/make_ref)]
+                             (erlang/spawn (fn []
+                                             (erlang/send opener #erl[:gun_response
+                                                                      conn
+                                                                      stream
+                                                                      :nofin
+                                                                      404
+                                                                      #erl{}])))
+                             stream))))
+        (is (= #erl[:error #erl{:status 404 :headers #erl{}}]
+               (slack.gun-util/get-json conn "/example"))))
+      (is (meck/validate :gun))
+      (finally (meck/unload :gun)))))
+
+(deftest get-rtm-url-test
+  (testing "Get a Slack RTM URL."
+    (try
+      (meck/new :gun #erl())
+      (let [conn (erlang/self)]
+        (meck/expect :gun :open (fn* ([#erl"slack.com" 443] #erl[:ok conn])))
+        (meck/expect :gun :close (fn* ([conn] :ok)))
+        (is (= #erl[:ok #erl{:host "example.com" :path "/example" :scheme "wss"}]
+               (slack.gun-util/stubbed-get-rtm-url
+                "example-api-token"
+                (fn* ([conn #erl"/api/rtm.connect?token=example-api-token"]
+                      #erl[:ok #erl{"url" "wss://example.com/example"}]))))))
+      (is (meck/validate :gun))
+      (finally (meck/unload :gun)))))
+
+(deftest open-rtm-test
+  (testing "Open a Slack RTM connection."
+    (let [opener (erlang/self)
+          gun-pid (erlang/self)]
+      (try
+        (meck/new :gun #erl())
+        (meck/expect :gun :open (fn* ([#erl"example.com" 443] #erl[:ok gun-pid])))
+        (meck/expect :gun :ws_upgrade (fn* ([gun-pid #erl"/example"]
+                                            (let [stream (erlang/make_ref)]
+                                              (erlang/send opener #erl[:gun_upgrade
+                                                                       gun-pid
+                                                                       stream
+                                                                       #erl("websocket")
+                                                                       #erl{}])
+                                              stream))))
+        (is (= #erl[:ok gun-pid]
+               (slack.gun-util/open-rtm #erl{:host "example.com" :path "/example"})))
+        (is (meck/validate :gun))
+        (finally (meck/unload :gun)))))
+  (testing "Return an error when the response isn't OK."
+    (let [opener (erlang/self)
+          gun-pid (erlang/self)]
+      (try
+        (meck/new :gun #erl())
+        (meck/expect :gun :open (fn* ([#erl"example.com" 443] #erl[:ok gun-pid])))
+        (meck/expect :gun :ws_upgrade (fn* ([gun-pid #erl"/example"]
+                                            (let [stream (erlang/make_ref)]
+                                              (erlang/send opener #erl[:gun_response
+                                                                       gun-pid
+                                                                       stream
+                                                                       :nofin
+                                                                       404
+                                                                       #erl{}])
+                                              stream))))
+        (meck/expect :gun :close (fn* ([gun-pid] :ok)))
+        (is (= #erl[:error #erl{:status 404 :headers #erl{}}]
+               (slack.gun-util/open-rtm #erl{:host "example.com" :path "/example"})))
+        (is (meck/validate :gun))
+        (finally (meck/unload :gun)))))
+  (testing "Return an error when gun cause an error."
+    (let [opener (erlang/self)
+          gun-pid (erlang/self)]
+      (try
+        (meck/new :gun #erl())
+        (meck/expect :gun :open (fn* ([#erl"example.com" 443] #erl[:ok gun-pid])))
+        (meck/expect :gun :ws_upgrade (fn* ([gun-pid #erl"/example"]
+                                            (let [stream (erlang/make_ref)]
+                                              (erlang/send opener #erl[:gun_error
+                                                                       gun-pid
+                                                                       stream
+                                                                       "Some reason"])
+                                              stream))))
+        (meck/expect :gun :close (fn* ([gun-pid] :ok)))
+        (is (= #erl[:error "Some reason"]
+               (slack.gun-util/open-rtm #erl{:host "example.com" :path "/example"})))
+        (is (meck/validate :gun))
+        (finally (meck/unload :gun)))))
+  (testing "Return an error when timeout."
+    (try
+      (meck/new :gun #erl())
+      (meck/expect :gun :open (fn* ([#erl"example.com" 443] #erl[:ok (erlang/self)])))
+      (meck/expect :gun :ws_upgrade (fn* ([_ #erl"/example"] (erlang/make_ref))))
+      (is (= #erl[:error "Timeout"]
+             (slack.gun-util/open-rtm #erl{:host "example.com" :path "/example"})))
+      (is (meck/validate :gun))
+      (finally (meck/unload :gun)))))

@@ -1,0 +1,97 @@
+(ns slack.conn-test
+  (:require [clojure.test :refer :all]
+            [meck]
+            [slack.conn :refer :all]))
+
+(def args
+  {:api-token "example-api-token"
+   :handlers '([:example-handler {:arg1 "h1"}])
+   :name "example"})
+
+(deftest child-spec-test
+  (testing "Generate a child-spec."
+    (is (= {:id :slack.conn.example
+            :start [:slack.conn :start-link #erl((clj->erl args))]
+            :restart :permanent
+            :shutdown :brutal_kill
+            :type :worker
+            :modules '(:slack.conn)}
+           (slack.conn/child-spec args)))))
+
+(deftest init-test
+  (testing "Connect to Slack RTM API."
+    (try
+      (meck/new :slack.gun-util #erl())
+      (let [conn (erlang/make_ref)]
+        (meck/expect :slack.gun-util :get-rtm-url (fn* (["example-api-token"] #erl[:ok "example-url"])))
+        (meck/expect :slack.gun-util :open-rtm (fn* (["example-url"] #erl[:ok conn])))
+        (is (= #erl[:ok (-> args (assoc :conn conn) clj->erl)]
+               (slack.conn/init (clj->erl args)))))
+      (is (meck/validate :slack.gun-util))
+      (finally (meck/unload :slack.gun-util)))))
+
+(deftest handle_call-test
+  (testing "Send a message to Slack."
+    (let [conn (erlang/make_ref)
+          state (-> args (assoc :conn conn) clj->erl)]
+      (try
+        (meck/new :gun #erl())
+        (meck/expect :gun :ws_send (fn* ([conn #erl[:text "{\"type\":\"ping\"}"]] :ok)))
+        (is (= #erl[:reply :ok state]
+               (slack.conn/handle_call #erl[:send-msg #erl{:type "ping"}] (erlang/self) state)))
+        (is (meck/validate :gun))
+        (finally (meck/unload :gun)))))
+  (testing "Return an error when the message can't be encoded to JSON."
+    (let [state (-> args (assoc :conn (erlang/make_ref)) clj->erl)]
+      (is (let* [#erl[:reply
+                      #erl[:error #erl[:badarg _]]
+                      state] (slack.conn/handle_call #erl[:send-msg #erl{42 "number key"}]
+                                                     (erlang/self)
+                                                     state)]
+                true))))
+  (testing "Ignore an unknown message."
+    (let [state (-> args (assoc :conn (erlang/make_ref)) clj->erl)]
+      (is (= #erl[:noreply state] (slack.conn/handle_call :unknown (erlang/self) state))))))
+
+(deftest handle_info-test
+  (testing "Stop when the gun is crushed."
+    (let [state (-> args (assoc :conn (erlang/make_ref)) clj->erl)]
+      (is (= #erl[:stop "Some reason" state]
+             (slack.conn/handle_info #erl[:DOWN :dummy :process :dummy "Some reason"] state)))))
+  (testing "Handle a message from Slack."
+    (let* [#erl[:ok pid] (gen_event/start #erl[:local (slack/gen-event-name (:name args))])
+           ref (erlang/make_ref)]
+          (try
+            (let* [:ok (gen_event/add_handler pid
+                                              :slack.example-bot
+                                              #erl{:sender (erlang/self) :ref ref})])
+            (meck/new :slack.example-bot #erl())
+            (meck/expect :slack.example-bot
+                         :handle_event
+                         (fn* ([#erl[:receive-msg #erl{"type" "ping"}] state]
+                               (erlang/send (:sender state) (:ref state))
+                               #erl[:ok state])))
+            (let [conn (erlang/make_ref)
+                  state (-> args (assoc :conn conn) clj->erl)]
+              (is (= #erl[:noreply state]
+                     (slack.conn/handle_info #erl[:gun_ws conn :stream #erl[:text "{\"type\":\"ping\"}"]]
+                                             state))))
+            (receive*
+             ref :ok
+             (after 5000 (throw :timeout)))
+            (is (meck/validate :slack.example-bot))
+            (finally (gen_event/stop pid)
+                     (meck/unload :slack.example-bot)))))
+  (testing "Ignore an unknown message."
+    (let [state (-> args (assoc :conn (erlang/make_ref)) clj->erl)]
+      (is (= #erl[:noreply state] (slack.conn/handle_info :unknown state))))))
+
+(deftest terminate-test
+  (testing "Stop the gun connection."
+    (try
+      (meck/new :gun #erl())
+      (let [conn (erlang/make_ref)]
+        (meck/expect :gun :close (fn* ([conn] :ok)))
+        (is (= :ok (slack.conn/terminate :normal (-> args (assoc :conn conn) clj->erl)))))
+      (is (meck/validate :gun))
+      (finally (meck/unload :gun)))))
