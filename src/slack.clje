@@ -1,4 +1,5 @@
-(ns slack)
+(ns slack
+  "A Slack Client for Clojerl.")
 
 (defn conn-name [name] (keyword (str "slack.conn." name)))
 (defn gen-event-name [name] (keyword (str "slack.gen_event." name)))

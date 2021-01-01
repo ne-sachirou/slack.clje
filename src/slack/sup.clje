@@ -1,4 +1,5 @@
-(ns slack.sup)
+(ns slack.sup
+  "The main supervisor.")
 
 (erlang.core/behaviours supervisor)
 
