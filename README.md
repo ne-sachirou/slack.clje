@@ -16,7 +16,7 @@ GPL-3.0-or-later
 
 ```erlang
 {deps, […,
-        {slack, {git, "git@github.com:ne-sachirou/slack.clje.git", {branch, "master"}}}]}
+        {slack, {git, "git@github.com:ne-sachirou/slack.clje.git", {branch, "main"}}}]}
 ```
 
 ## Usage
