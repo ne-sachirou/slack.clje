@@ -4,7 +4,7 @@ help:
 
 .PHONY: format
 format: ## Format files
-	(ag -g '\.clje$$' ; echo deps.edn) | xargs -t clojure -m cljfmt.main fix
+	ag -g '\.clje|edn$$' | xargs -t clojure -m cljfmt.main fix
 	npx prettier --write README.md
 
 .PHONY: repl
@@ -13,7 +13,7 @@ repl: ## Start a REPL shell
 
 .PHONY: test
 test: ## Test
-	(ag -g '\.clje$$' ; echo deps.edn) | xargs -t clojure -m cljfmt.main check
+	git ls-files | grep '\.clje\|edn$$' | xargs -t clojure -m cljfmt.main check
 	rebar3 clojerl test
 
 .PHONY: upgrade
