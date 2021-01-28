@@ -1,12 +1,15 @@
 (ns slack.sup-test
-  (:require [clojure.test :refer :all]
-            [meck]
-            [slack.sup :refer :all]))
+  (:require
+    [clojure.test :refer :all]
+    [meck]
+    [slack.sup :refer :all]))
+
 
 (def args
   {:api-token "example-api-token"
    :handlers '([:example-handler {:arg1 "h1"}])
    :name "example"})
+
 
 (deftest child-spec-test
   (testing "Generate a child-spec."
@@ -17,6 +20,7 @@
             :type :supervisor
             :modules '(:slack.sup)}
            (slack.sup/child-spec args)))))
+
 
 (deftest start-link-test
   (testing "Start a supervisor."
@@ -29,6 +33,7 @@
         (is (= #erl[:ok ref] (slack.sup/start-link (clj->erl args)))))
       (is (meck/validate :supervisor))
       (finally (meck/unload :supervisor)))))
+
 
 (deftest init-test
   (testing "Return sup-flags & child-specs."

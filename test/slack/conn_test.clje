@@ -1,12 +1,15 @@
 (ns slack.conn-test
-  (:require [clojure.test :refer :all]
-            [meck]
-            [slack.conn :refer :all]))
+  (:require
+    [clojure.test :refer :all]
+    [meck]
+    [slack.conn :refer :all]))
+
 
 (def args
   {:api-token "example-api-token"
    :handlers '([:example-handler {:arg1 "h1"}])
    :name "example"})
+
 
 (deftest child-spec-test
   (testing "Generate a child-spec."
@@ -17,6 +20,7 @@
             :type :worker
             :modules '(:slack.conn)}
            (slack.conn/child-spec args)))))
+
 
 (deftest init-test
   (testing "Connect to Slack RTM API."
@@ -29,6 +33,7 @@
                (slack.conn/init (clj->erl args)))))
       (is (meck/validate :slack.gun-util))
       (finally (meck/unload :slack.gun-util)))))
+
 
 (deftest handle_call-test
   (testing "Send a message to Slack."
@@ -52,6 +57,7 @@
   (testing "Ignore an unknown message."
     (let [state (-> args (assoc :conn (erlang/make_ref)) clj->erl)]
       (is (= #erl[:noreply state] (slack.conn/handle_call :unknown (erlang/self) state))))))
+
 
 (deftest handle_info-test
   (testing "Stop when the gun is crushed."
@@ -77,14 +83,15 @@
                      (slack.conn/handle_info #erl[:gun_ws conn :stream #erl[:text "{\"type\":\"ping\"}"]]
                                              state))))
             (receive*
-             ref :ok
-             (after 5000 (throw :timeout)))
+              ref :ok
+              (after 5000 (throw :timeout)))
             (is (meck/validate :slack.example-bot))
             (finally (gen_event/stop pid)
                      (meck/unload :slack.example-bot)))))
   (testing "Ignore an unknown message."
     (let [state (-> args (assoc :conn (erlang/make_ref)) clj->erl)]
       (is (= #erl[:noreply state] (slack.conn/handle_info :unknown state))))))
+
 
 (deftest terminate-test
   (testing "Stop the gun connection."

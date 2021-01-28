@@ -1,11 +1,14 @@
 (ns slack.gen-event-sup-test
-  (:require [clojure.test :refer :all]
-            [slack.gen-event-sup :refer :all]))
+  (:require
+    [clojure.test :refer :all]
+    [slack.gen-event-sup :refer :all]))
+
 
 (def args
   {:api-token "example-api-token"
    :handlers '([:example-handler {:arg1 "h1"}])
    :name "example"})
+
 
 (deftest child-spec-test
   (testing "Generate a child-spec."
@@ -17,33 +20,35 @@
             :modules '(:slack.gen-event-sup)}
            (slack.gen-event-sup/child-spec args)))))
 
+
 (deftest init-test
   (testing "Add a handler to gen_event."
     (is (= #erl[:ok args]
            (slack.gen-event-sup/stubbed-init
-            (clj->erl args)
-            (fn* ([:slack.gen_event.example
-                   :example-handler
-                   #erl{:api-token "example-api-token"
-                        :handlers _ ; #erl(#erl[:example-handler1 #erl{:arg1 "h1"}])
-                        :name "example"
-                        :arg1 "h1"}] :ok))))))
+             (clj->erl args)
+             (fn* ([:slack.gen_event.example
+                    :example-handler
+                    #erl{:api-token "example-api-token"
+                         :handlers _ ; #erl(#erl[:example-handler1 #erl{:arg1 "h1"}])
+                         :name "example"
+                         :arg1 "h1"}] :ok))))))
   (testing "Add multiple handlers to gen_event."
     (let [args (assoc args :handlers '([:example-handler1 {:arg1 "h1"}]
                                        [:example-handler2 {:arg1 "h2"}]))]
       (is (= #erl[:ok args]
              (slack.gen-event-sup/stubbed-init
-              (clj->erl args)
-              (fn* ([:slack.gen_event.example :example-handler1 #erl{:arg1 "h1"}] :ok)
-                   ([:slack.gen_event.example :example-handler2 #erl{:arg1 "h2"}] :ok)))))))
+               (clj->erl args)
+               (fn* ([:slack.gen_event.example :example-handler1 #erl{:arg1 "h1"}] :ok)
+                    ([:slack.gen_event.example :example-handler2 #erl{:arg1 "h2"}] :ok)))))))
   (testing "Override default args."
     (let [args (assoc args :api-token "Hide the API token")]
       (is (= #erl[:ok args]
              (slack.gen-event-sup/stubbed-init
-              (clj->erl args)
-              (fn* ([:slack.gen_event.example
-                     :example-handler
-                     #erl{:api-token "Hide the API token"}] :ok))))))))
+               (clj->erl args)
+               (fn* ([:slack.gen_event.example
+                      :example-handler
+                      #erl{:api-token "Hide the API token"}] :ok))))))))
+
 
 (deftest handle_info-test
   (testing "Stop when some handler unexpectedly exit."

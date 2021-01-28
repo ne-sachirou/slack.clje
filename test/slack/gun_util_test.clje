@@ -1,7 +1,9 @@
 (ns slack.gun-util-test
-  (:require [clojure.test :refer :all]
-            [meck]
-            [slack.gun-util :refer :all]))
+  (:require
+    [clojure.test :refer :all]
+    [meck]
+    [slack.gun-util :refer :all]))
+
 
 (deftest get-json-test
   (testing "Request a GET & decode the JSON response."
@@ -81,6 +83,7 @@
       (is (meck/validate :gun))
       (finally (meck/unload :gun)))))
 
+
 (deftest get-rtm-url-test
   (testing "Get a Slack RTM URL."
     (try
@@ -90,11 +93,12 @@
         (meck/expect :gun :close (fn* ([conn] :ok)))
         (is (= #erl[:ok #erl{:host "example.com" :path "/example" :scheme "wss"}]
                (slack.gun-util/stubbed-get-rtm-url
-                "example-api-token"
-                (fn* ([conn #erl"/api/rtm.connect?token=example-api-token"]
-                      #erl[:ok #erl{"url" "wss://example.com/example"}]))))))
+                 "example-api-token"
+                 (fn* ([conn #erl"/api/rtm.connect?token=example-api-token"]
+                       #erl[:ok #erl{"url" "wss://example.com/example"}]))))))
       (is (meck/validate :gun))
       (finally (meck/unload :gun)))))
+
 
 (deftest open-rtm-test
   (testing "Open a Slack RTM connection."

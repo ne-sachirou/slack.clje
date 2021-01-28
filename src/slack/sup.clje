@@ -1,13 +1,18 @@
 (ns slack.sup
   "The main supervisor.")
 
+
 (erlang.core/behaviours supervisor)
 
-(def sup-flags #erl{:strategy  :one_for_one
-                    :intensity 1
-                    :period    5})
 
-(defn child-spec [{:keys [api-token handlers name] :as args}]
+(def sup-flags
+  #erl{:strategy  :one_for_one
+       :intensity 1
+       :period    5})
+
+
+(defn child-spec
+  [{:keys [api-token handlers name] :as args}]
   {:id (slack/sup-name name)
    :start [:slack.sup :start-link #erl((clj->erl args))]
    :restart :permanent
@@ -15,12 +20,16 @@
    :type :supervisor
    :modules '(:slack.sup)})
 
-(defn start-link [{:keys [api-token handlers name] :as args}]
+
+(defn start-link
+  [{:keys [api-token handlers name] :as args}]
   (supervisor/start_link #erl[:local (slack/sup-name name)]
                          :slack.sup
                          args))
 
-(defn init [{:keys [name] :as args}]
+
+(defn init
+  [{:keys [name] :as args}]
   (let* [#erl[:ok _] (application/ensure_all_started :gun)])
   (let [child-specs (clj->erl (list (slack.conn/child-spec args)
                                     {:id (slack/gen-event-name name)

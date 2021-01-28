@@ -2,7 +2,9 @@
 
 (erlang.core/behaviours gen_server)
 
-(defn child-spec [{:keys [api-token handlers name] :as args}]
+
+(defn child-spec
+  [{:keys [api-token handlers name] :as args}]
   {:id (slack/gen-event-sup-name name)
    :start [:slack.gen-event-sup :start-link #erl((clj->erl args))]
    :restart :permanent
@@ -10,26 +12,39 @@
    :type :worker
    :modules '(:slack.gen-event-sup)})
 
-(defn start-link [{:keys [api-token handlers name] :as args}]
+
+(defn start-link
+  [{:keys [api-token handlers name] :as args}]
   (gen_server/start_link #erl[:local (slack/gen-event-sup-name name)]
                          :slack.gen-event-sup
                          args
                          #erl()))
 
 ; NOTE: meck can't mock gen_event/add_sup_handler.3 because it fails code/purge.1.
-(defn stubbed-init [{:keys [handlers name] :as args} add-handler]
+(defn stubbed-init
+  [{:keys [handlers name] :as args} add-handler]
   (doseq [handler handlers]
     (let* [#erl[handler-module handler-args] handler
            :ok (add-handler (slack/gen-event-name name)
                             handler-module
                             (conj args handler-args))]))
   #erl[:ok args])
-(defn init [{:keys [handlers name] :as args}]
+
+
+(defn init
+  [{:keys [handlers name] :as args}]
   (stubbed-init args gen_event/add_sup_handler.3))
 
-(defn handle_call [_ _ state] #erl[:noreply state])
 
-(defn handle_cast [_ state] #erl[:noreply state])
+(defn handle_call
+  [_ _ state]
+  #erl[:noreply state])
+
+
+(defn handle_cast
+  [_ state]
+  #erl[:noreply state])
+
 
 (def handle_info
   (fn* ([#erl[:gen_event_EXIT _ reason] state]

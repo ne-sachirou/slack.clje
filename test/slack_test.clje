@@ -1,18 +1,23 @@
 (ns slack-test
-  (:require [clojure.test :refer :all]
-            [slack :refer :all]))
+  (:require
+    [clojure.test :refer :all]
+    [slack :refer :all]))
+
 
 (deftest conn-name-test
   (testing "Generate a slack/conn gen_server name."
     (is (= :slack.conn.example (slack/conn-name "example")))))
 
+
 (deftest gen-event-name-test
   (testing "Generate a gen_event name."
     (is (= :slack.gen_event.example (slack/gen-event-name "example")))))
 
+
 (deftest gen-event-sup-name-test
   (testing "Generate a slack/gen-event-sup gen_server name."
     (is (= :slack.gen-event-sup.example (slack/gen-event-sup-name "example")))))
+
 
 (deftest sup-name-test
   (testing "Generate a slack/sup supervisor name."

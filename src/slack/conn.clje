@@ -1,10 +1,14 @@
 (ns slack.conn
-  (:require [gun]
-            [jsone]))
+  (:require
+    [gun]
+    [jsone]))
+
 
 (erlang.core/behaviours gen_server)
 
-(defn child-spec [{:keys [api-token handlers name] :as args}]
+
+(defn child-spec
+  [{:keys [api-token handlers name] :as args}]
   {:id (slack/conn-name name)
    :start [:slack.conn :start-link #erl((clj->erl args))]
    :restart :permanent
@@ -12,16 +16,21 @@
    :type :worker
    :modules '(:slack.conn)})
 
-(defn start-link [{:keys [api-token handlers name] :as args}]
+
+(defn start-link
+  [{:keys [api-token handlers name] :as args}]
   (gen_server/start_link #erl[:local (slack/conn-name name)],
                          :slack.conn
                          args
                          #erl()))
 
-(defn init [{:keys [api-token] :as args}]
+
+(defn init
+  [{:keys [api-token] :as args}]
   (let* [#erl[:ok rtm-url] (slack.gun-util/get-rtm-url api-token)
          #erl[:ok conn] (slack.gun-util/open-rtm rtm-url)]
         #erl[:ok (assoc args :conn conn)]))
+
 
 (def handle_call
   (fn* ([#erl[:send-msg msg] _ #as(state #erl{:conn conn})]
@@ -32,7 +41,11 @@
        ([_ _ state]
         #erl[:noreply state])))
 
-(defn handle_cast [_ state] #erl[:noreply state])
+
+(defn handle_cast
+  [_ state]
+  #erl[:noreply state])
+
 
 (def handle_info
   (fn* ([#erl[:DOWN _ :process _ reason] state]
@@ -44,6 +57,8 @@
        ([msg, state]
         #erl[:noreply state])))
 
-(defn terminate [_reason {conn :conn}]
+
+(defn terminate
+  [_reason {conn :conn}]
   (gun/close conn)
   :ok)

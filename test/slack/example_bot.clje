@@ -2,8 +2,17 @@
 
 (erlang.core/behaviours gen_event)
 
-(defn init [args] #erl[:ok args])
 
-(defn handle_call [request state] #erl[:ok request state])
+(defn init
+  [args]
+  #erl[:ok args])
 
-(defn handle_event [event state] #erl[:ok state])
+
+(defn handle_call
+  [request state]
+  #erl[:ok request state])
+
+
+(defn handle_event
+  [event state]
+  #erl[:ok state])
