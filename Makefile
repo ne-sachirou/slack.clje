@@ -4,7 +4,7 @@ help:
 
 .PHONY: format
 format: ## Format files
-	clojure -M:dev -m cljstyle.main fix
+	cljstyle fix
 	npx prettier --write README.md
 
 .PHONY: repl
@@ -13,7 +13,8 @@ repl: ## Start a REPL shell
 
 .PHONY: test
 test: ## Test
-	clojure -M:dev -m cljstyle.main check
+	cljstyle check
+	clj-kondo --lint .
 	rebar3 clojerl test
 
 .PHONY: upgrade

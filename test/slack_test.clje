@@ -23,7 +23,8 @@
   (testing "Generate a slack/sup supervisor name."
     (is (= :slack.sup.example (slack/sup-name "example")))))
 
-; NOTE: meck can't mock gen_server because meck itself use it.
+
+;; NOTE: meck can't mock gen_server because meck itself use it.
 (deftest send-msg-test
   (testing "Send a message to slack.conn."
     (try
@@ -33,13 +34,15 @@
         (is (= #erl[:noproc
                     #erl[:gen_server :call #erl(:slack.conn.example #erl[:send-msg #erl{:type "ping"}])]]
                error))))))
-; (deftest send-msg-test
-;   (testing "Send a message to slack.conn."
-;     (try
-;       (meck/new :gen_server #erl(:passthrough :unstick))
-;       (meck/expect :gen_server
-;                    :call
-;                    (fn* ([:slack.conn.example #erl{:type "ping"}] :ok)))
-;       (is (= :ok (slack/send-msg "example" #erl{:type "ping"})))
-;       (meck/validate :gen_server)
-;       (finally (meck/unload :gen_server)))))
+
+
+;; (deftest send-msg-test
+;;   (testing "Send a message to slack.conn."
+;;     (try
+;;       (meck/new :gen_server #erl(:passthrough :unstick))
+;;       (meck/expect :gen_server
+;;                    :call
+;;                    (fn* ([:slack.conn.example #erl{:type "ping"}] :ok)))
+;;       (is (= :ok (slack/send-msg "example" #erl{:type "ping"})))
+;;       (meck/validate :gen_server)
+;;       (finally (meck/unload :gen_server)))))

@@ -24,7 +24,8 @@
     #erl[:gun_response _ _ _ status headers] #erl[:error #erl{:status status :headers headers}]
     (after 5000 #erl[:error "Timeout"])))
 
-; NOTE: meck can't mock the testing target module.
+
+;; NOTE: meck can't mock the testing target module.
 (defn stubbed-get-rtm-url
   [api-token get-json]
   (let* [#erl[:ok conn] (gun/open #erl"slack.com" 443)

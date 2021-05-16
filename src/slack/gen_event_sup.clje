@@ -20,7 +20,8 @@
                          args
                          #erl()))
 
-; NOTE: meck can't mock gen_event/add_sup_handler.3 because it fails code/purge.1.
+
+;; NOTE: meck can't mock gen_event/add_sup_handler.3 because it fails code/purge.1.
 (defn stubbed-init
   [{:keys [handlers name] :as args} add-handler]
   (doseq [handler handlers]
