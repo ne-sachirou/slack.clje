@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         clojure: ['1.10.2.774']
-        erlang: ['23.x', '24.x']
+        erlang: ['24.x']
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
