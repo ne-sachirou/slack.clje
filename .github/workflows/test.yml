@@ -22,7 +22,7 @@ jobs:
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ matrix.erlang }}
-      - uses: DeLaGuardo/setup-clojure@3.1
+      - uses: DeLaGuardo/setup-clojure@3.3
         with:
           cli: ${{ matrix.clojure }}
       - uses: actions/checkout@v2
@@ -40,7 +40,16 @@ jobs:
           key: ${{ runner.os }}-clj-${{ hashFiles('deps.edn') }}
           restore-keys: |
             ${{ runner.os }}-clj-
-      - name: Lint & test
+      - name: Setup cljstyle
         run: |
-          # TODO: Setup cljstyle & clj-kondo
+          curl -sLO https://raw.githubusercontent.com/greglook/cljstyle/main/script/install-cljstyle
+          chmod +x install-cljstyle
+          sudo ./install-cljstyle
+      - name: Setup clj-kondo
+        run: |
+          curl -sLO https://raw.githubusercontent.com/clj-kondo/clj-kondo/master/script/install-clj-kondo
+          chmod +x install-clj-kondo
+          sudo ./install-clj-kondo
+      - name: Test
+        run: |
           make test
