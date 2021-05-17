@@ -15,14 +15,12 @@ jobs:
     strategy:
       matrix:
         clojure: ['1.10.2.774']
-        elixir: ['1.11.x']
-        erlang: ['22.x', '23.x']
+        erlang: ['23.x', '24.x']
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/setup-elixir@v1
+      - uses: erlef/setup-beam@v1
         with:
-          elixir-version: ${{ matrix.elixir }}
           otp-version: ${{ matrix.erlang }}
       - uses: DeLaGuardo/setup-clojure@3.1
         with:
@@ -44,4 +42,5 @@ jobs:
             ${{ runner.os }}-clj-
       - name: Lint & test
         run: |
+          # TODO: Setup cljstyle & clj-kondo
           make test
