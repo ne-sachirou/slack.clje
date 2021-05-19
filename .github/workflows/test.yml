@@ -1,7 +1,7 @@
 ---
 name: Test
 
-'on':
+"on":
   pull_request:
   push:
     branches:
@@ -14,8 +14,8 @@ jobs:
   test:
     strategy:
       matrix:
-        clojure: ['1.10.2.774']
-        erlang: ['24.x']
+        clojure: ["1.10.2.774"]
+        erlang: ["24.x"]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
@@ -25,6 +25,16 @@ jobs:
       - uses: DeLaGuardo/setup-clojure@3.3
         with:
           cli: ${{ matrix.clojure }}
+      - name: Setup cljstyle
+        run: |
+          curl -sLO https://raw.githubusercontent.com/greglook/cljstyle/main/script/install-cljstyle
+          chmod +x install-cljstyle
+          sudo ./install-cljstyle
+      - name: Setup clj-kondo
+        run: |
+          curl -sLO https://raw.githubusercontent.com/clj-kondo/clj-kondo/master/script/install-clj-kondo
+          chmod +x install-clj-kondo
+          sudo ./install-clj-kondo
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
         with:
@@ -40,16 +50,6 @@ jobs:
           key: ${{ runner.os }}-clj-${{ hashFiles('deps.edn') }}
           restore-keys: |
             ${{ runner.os }}-clj-
-      - name: Setup cljstyle
-        run: |
-          curl -sLO https://raw.githubusercontent.com/greglook/cljstyle/main/script/install-cljstyle
-          chmod +x install-cljstyle
-          sudo ./install-cljstyle
-      - name: Setup clj-kondo
-        run: |
-          curl -sLO https://raw.githubusercontent.com/clj-kondo/clj-kondo/master/script/install-clj-kondo
-          chmod +x install-clj-kondo
-          sudo ./install-clj-kondo
       - name: Test
         run: |
           make test

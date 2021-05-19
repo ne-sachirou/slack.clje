@@ -1,8 +1,11 @@
 (ns slack.sup-test
   (:require
-    [clojure.test :refer :all]
+    [clojure.test :refer [deftest is testing]]
+    [erlang]
     [meck]
-    [slack.sup :refer :all]))
+    [slack.conn]
+    [slack.gen-event-sup]
+    [slack.sup]))
 
 
 (def args
@@ -29,7 +32,7 @@
       (let [ref (erlang/make_ref)]
         (meck/expect :supervisor
                      :start_link
-                     (fn* ([#erl[:local :slack.sup.example] :slack.sup args] #erl[:ok ref])))
+                     (fn* ([#erl[:local :slack.sup.example] :slack.sup _args] #erl[:ok ref])))
         (is (= #erl[:ok ref] (slack.sup/start-link (clj->erl args)))))
       (is (meck/validate :supervisor))
       (finally (meck/unload :supervisor)))))

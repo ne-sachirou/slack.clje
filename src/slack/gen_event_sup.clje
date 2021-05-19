@@ -1,4 +1,8 @@
-(ns slack.gen-event-sup)
+(ns slack.gen-event-sup
+  (:require
+    [erlang.core]
+    [slack]))
+
 
 (erlang.core/behaviours gen_server)
 

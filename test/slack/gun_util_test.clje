@@ -1,8 +1,9 @@
 (ns slack.gun-util-test
   (:require
-    [clojure.test :refer :all]
+    [clojure.test :refer [deftest is testing]]
+    [erlang]
     [meck]
-    [slack.gun-util :refer :all]))
+    [slack.gun-util]))
 
 
 (deftest get-json-test
@@ -90,11 +91,11 @@
       (meck/new :gun #erl())
       (let [conn (erlang/self)]
         (meck/expect :gun :open (fn* ([#erl"slack.com" 443] #erl[:ok conn])))
-        (meck/expect :gun :close (fn* ([conn] :ok)))
+        (meck/expect :gun :close (fn* ([_conn] :ok)))
         (is (= #erl[:ok #erl{:host "example.com" :path "/example" :scheme "wss"}]
                (slack.gun-util/stubbed-get-rtm-url
                  "example-api-token"
-                 (fn* ([conn #erl"/api/rtm.connect?token=example-api-token"]
+                 (fn* ([_conn #erl"/api/rtm.connect?token=example-api-token"]
                        #erl[:ok #erl{"url" "wss://example.com/example"}]))))))
       (is (meck/validate :gun))
       (finally (meck/unload :gun)))))
@@ -134,7 +135,7 @@
                                                                        404
                                                                        #erl{}])
                                               stream))))
-        (meck/expect :gun :close (fn* ([gun-pid] :ok)))
+        (meck/expect :gun :close (fn* ([_gun-pid] :ok)))
         (is (= #erl[:error #erl{:status 404 :headers #erl{}}]
                (slack.gun-util/open-rtm #erl{:host "example.com" :path "/example"})))
         (is (meck/validate :gun))
@@ -152,7 +153,7 @@
                                                                        stream
                                                                        "Some reason"])
                                               stream))))
-        (meck/expect :gun :close (fn* ([gun-pid] :ok)))
+        (meck/expect :gun :close (fn* ([_gun-pid] :ok)))
         (is (= #erl[:error "Some reason"]
                (slack.gun-util/open-rtm #erl{:host "example.com" :path "/example"})))
         (is (meck/validate :gun))

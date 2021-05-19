@@ -1,7 +1,7 @@
 (ns slack-test
   (:require
-    [clojure.test :refer :all]
-    [slack :refer :all]))
+    [clojure.test :refer [deftest is testing]]
+    [slack]))
 
 
 (deftest conn-name-test

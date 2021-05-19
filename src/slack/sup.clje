@@ -1,5 +1,12 @@
 (ns slack.sup
-  "The main supervisor.")
+  "The main supervisor."
+  (:require
+    [application]
+    [erlang.core]
+    [slack]
+    [slack.conn]
+    [slack.gen-event-sup]
+    [supervisor]))
 
 
 (erlang.core/behaviours supervisor)

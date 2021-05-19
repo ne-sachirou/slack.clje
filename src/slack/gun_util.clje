@@ -1,5 +1,8 @@
 (ns slack.gun-util
   (:require
+    [binary]
+    [clojure.string]
+    [erlang]
     [gun]
     [jsone]))
 
@@ -39,6 +42,7 @@
 
 (defn get-rtm-url
   [api-token]
+  #_{:clj-kondo/ignore [:unresolved-var]}
   (stubbed-get-rtm-url api-token slack.gun-util/get-json.2))
 
 

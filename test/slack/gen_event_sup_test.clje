@@ -1,7 +1,7 @@
 (ns slack.gen-event-sup-test
   (:require
-    [clojure.test :refer :all]
-    [slack.gen-event-sup :refer :all]))
+    [clojure.test :refer [deftest is testing]]
+    [slack.gen-event-sup]))
 
 
 (def args

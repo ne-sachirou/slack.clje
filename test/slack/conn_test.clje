@@ -1,8 +1,10 @@
 (ns slack.conn-test
   (:require
-    [clojure.test :refer :all]
+    [clojure.test :refer [deftest is testing]]
+    [erlang]
     [meck]
-    [slack.conn :refer :all]))
+    [slack]
+    [slack.conn]))
 
 
 (def args
@@ -41,7 +43,7 @@
           state (-> args (assoc :conn conn) clj->erl)]
       (try
         (meck/new :gun #erl())
-        (meck/expect :gun :ws_send (fn* ([conn #erl[:text "{\"type\":\"ping\"}"]] :ok)))
+        (meck/expect :gun :ws_send (fn* ([_conn #erl[:text "{\"type\":\"ping\"}"]] :ok)))
         (is (= #erl[:reply :ok state]
                (slack.conn/handle_call #erl[:send-msg #erl{:type "ping"}] (erlang/self) state)))
         (is (meck/validate :gun))
@@ -98,7 +100,7 @@
     (try
       (meck/new :gun #erl())
       (let [conn (erlang/make_ref)]
-        (meck/expect :gun :close (fn* ([conn] :ok)))
+        (meck/expect :gun :close (fn* ([_conn] :ok)))
         (is (= :ok (slack.conn/terminate :normal (-> args (assoc :conn conn) clj->erl)))))
       (is (meck/validate :gun))
       (finally (meck/unload :gun)))))

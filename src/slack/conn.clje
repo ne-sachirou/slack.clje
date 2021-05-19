@@ -1,7 +1,10 @@
 (ns slack.conn
   (:require
+    [erlang.core]
     [gun]
-    [jsone]))
+    [jsone]
+    [slack]
+    [slack.gun-util]))
 
 
 (erlang.core/behaviours gen_server)
@@ -54,7 +57,7 @@
         (gen_event/notify (slack/gen-event-name name)
                           #erl[:receive-msg (jsone/decode msg)])
         #erl[:noreply state])
-       ([msg, state]
+       ([_msg, state]
         #erl[:noreply state])))
 
 

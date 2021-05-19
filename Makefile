@@ -6,6 +6,7 @@ help:
 format: ## Format files
 	cljstyle fix
 	npx prettier --write README.md
+	npx prettier --write .github/workflows/*.yml
 
 .PHONY: repl
 repl: ## Start a REPL shell
@@ -14,7 +15,7 @@ repl: ## Start a REPL shell
 .PHONY: test
 test: ## Test
 	cljstyle check
-	clj-kondo --lint .
+	cljstyle find | xargs -t clj-kondo --lint || true
 	rebar3 clojerl test
 
 .PHONY: upgrade
