@@ -14,7 +14,7 @@ jobs:
   test:
     strategy:
       matrix:
-        clojure: ["1.10.2.774"]
+        clojure: ["1.10.3.849"]
         erlang: ["24.x"]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}

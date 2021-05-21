@@ -21,3 +21,4 @@ test: ## Test
 .PHONY: upgrade
 upgrade: ## Upgrade deps
 	rebar3 upgrade
+	clj -M:dev -m antq.core
